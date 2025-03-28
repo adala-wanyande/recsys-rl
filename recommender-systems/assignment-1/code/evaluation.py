@@ -21,7 +21,7 @@ model = NeuralCF(num_users, num_items, embed_size, mlp_layers).to(device)
 
 # Load trained weights clearly
 model.load_state_dict(torch.load(
-    'models/ncf_model_best.pt', map_location=device))
+    '../models/ncf_model_best.pt', map_location=device))
 
 # Set model to evaluation mode
 model.eval()
@@ -29,8 +29,8 @@ model.eval()
 print("✅ NCF Model loaded and ready for evaluation.")
 
 # Load test data
-test_df = pd.read_csv('data/test_df.csv')
-train_df = pd.read_csv('data/train_df.csv')
+test_df = pd.read_csv('../data/test_df.csv')
+train_df = pd.read_csv('../data/train_df.csv')
 
 all_items = test_df['movieId'].unique()
 train_user_item_set = set(zip(train_df['userId'], train_df['movieId']))

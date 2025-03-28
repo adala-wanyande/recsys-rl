@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 
 # Load the data into a DataFrame
 columns = ['userId', 'movieId', 'rating', 'timestamp']
-df = pd.read_csv(r'C:\Users\atakl\RS_Assignemnt\ml-1m\ratings.dat',
+df = pd.read_csv('../data/ratings.dat',
                  sep='::', names=columns, engine='python')
 
 # Keep ratings >= 4 as implicit positive interactions
@@ -70,6 +70,6 @@ print(f"Train size: {len(train_df)} ({len(train_df)/len(df_full)*100:.2f}%)")
 print(f"Validation size: {len(val_df)} ({len(val_df)/len(df_full)*100:.2f}%)")
 print(f"Test size: {len(test_df)} ({len(test_df)/len(df_full)*100:.2f}%)")
 
-train_df.to_csv('train_df.csv', index=False)
-val_df.to_csv('val_df.csv', index=False)
-test_df.to_csv('test_df.csv', index=False)
+train_df.to_csv('../data/train_df.csv', index=False)
+val_df.to_csv('../data/val_df.csv', index=False)
+test_df.to_csv('../data/test_df.csv', index=False)
