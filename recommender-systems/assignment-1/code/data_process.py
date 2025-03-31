@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 
 # Load the data into a DataFrame
 columns = ['userId', 'movieId', 'rating', 'timestamp']
-df = pd.read_csv(r'C:\Users\atakl\RS_Assignemnt\ml-1m\ratings.dat',
+df = pd.read_csv('../data/ratings.dat',
                  sep='::', names=columns, engine='python')
 
 # Keep ratings >= 4 as implicit positive interactions
