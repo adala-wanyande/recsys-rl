@@ -8,9 +8,9 @@ from torch.utils.data import DataLoader, Dataset
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # 1. Load Preprocessed Data
-train_df = pd.read_csv('data/train_df.csv')
-val_df = pd.read_csv('data/val_df.csv')
-test_df = pd.read_csv('data/test_df.csv')
+train_df = pd.read_csv('../data/train_df.csv')
+val_df = pd.read_csv('../data/val_df.csv')
+test_df = pd.read_csv('../data/test_df.csv')
 
 # Get number of users and items
 num_users = train_df['userId'].max() + 1
@@ -157,7 +157,7 @@ for epoch in range(num_epochs):
         best_val_loss = val_loss
         epochs_without_improvement = 0
         # Save the best model
-        torch.save(model.state_dict(), 'models/ncf_model_best.pt')
+        torch.save(model.state_dict(), '../models/ncf_model_best.pt')
         print("Validation loss improved, saving model.")
     else:
         epochs_without_improvement += 1
@@ -169,4 +169,4 @@ for epoch in range(num_epochs):
         break
 
 # Load best model weights after training
-model.load_state_dict(torch.load('models/ncf_model_best.pt'))
+model.load_state_dict(torch.load('../models/ncf_model_best.pt'))
