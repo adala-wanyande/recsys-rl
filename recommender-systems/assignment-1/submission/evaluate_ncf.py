@@ -10,20 +10,25 @@ from neural_collaborative_filtering import NeuralCollaborativeFiltering, NCFData
 def evaluate_ranking_metrics(model, test_df, train_df, num_users, num_items, device, K=10):
     model.eval()
 
-    train_interactions = train_df.groupby('user_id')['movie_id'].apply(set).to_dict()
+    train_interactions = train_df.groupby(
+        'user_id')['movie_id'].apply(set).to_dict()
 
     hits, ndcgs, recalls = [], [], []
 
     for user in test_df['user_id'].unique():
-        positive_items = test_df[(test_df['user_id'] == user) & (test_df['interaction'] == 1)]['movie_id'].tolist()
+        positive_items = test_df[(test_df['user_id'] == user) & (
+            test_df['interaction'] == 1)]['movie_id'].tolist()
         if not positive_items:
             continue
 
-        negative_items = list(set(range(num_items)) - train_interactions.get(user, set()) - set(positive_items))
-        negative_samples = np.random.choice(negative_items, 99, replace=False).tolist()
+        negative_items = list(
+            set(range(num_items)) - train_interactions.get(user, set()) - set(positive_items))
+        negative_samples = np.random.choice(
+            negative_items, 99, replace=False).tolist()
 
         items_to_rank = negative_samples + positive_items
-        users_tensor = torch.tensor([user] * len(items_to_rank), dtype=torch.long).to(device)
+        users_tensor = torch.tensor(
+            [user] * len(items_to_rank), dtype=torch.long).to(device)
         items_tensor = torch.tensor(items_to_rank, dtype=torch.long).to(device)
 
         with torch.no_grad():
@@ -69,6 +74,7 @@ if __name__ == "__main__":
     num_items = max(train_df['movie_id'].max(), test_df['movie_id'].max()) + 1
 
     model = NeuralCollaborativeFiltering(num_users, num_items).to(device)
-    model.load_state_dict(torch.load('best_ncf_model.pth'))
+    model.load_state_dict(torch.load('./models/best_ncf_model.pth'))
 
-    evaluate_ranking_metrics(model, test_df, train_df, num_users, num_items, device, K=10)
+    evaluate_ranking_metrics(model, test_df, train_df,
+                             num_users, num_items, device, K=10)
