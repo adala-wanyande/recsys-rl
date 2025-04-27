@@ -22,7 +22,7 @@ ratings = ratings[ratings['UserID'].isin(valid_users)].copy()
 user_groups = ratings.groupby('UserID')['MovieID'].apply(list)
 
 # Sequence truncation/padding to fixed length (e.g., 20)
-sequence_length = 20
+sequence_length = 100
 
 
 def pad_or_truncate(sequence, maxlen=sequence_length):

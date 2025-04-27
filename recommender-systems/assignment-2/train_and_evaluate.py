@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import ast
+import random
+from collections import Counter
 from torch.optim import Adam
 from transformers import get_linear_schedule_with_warmup
 from BERT4Rec_model import BERT4Rec
@@ -56,6 +58,19 @@ def ndcg_k(ranked_items, ground_truth, k=10):
 def recall_k(ranked_items, ground_truth, k=10):
     hits = sum([1 for item in ground_truth if item in ranked_items[:k]])
     return hits / len(ground_truth) if ground_truth else 0.0
+
+
+def build_item_popularity(train_sequences):
+    item_counts = Counter()
+    for seq in train_sequences:
+        item_counts.update(seq)
+    return item_counts
+
+
+def sample_popular_negatives(item_counts, all_items, num_samples, exclude_items=set()):
+    sorted_items = [item for item, _ in item_counts.most_common()
+                    if item not in exclude_items]
+    return random.sample(sorted_items[:1000], num_samples)
 
 # ------------------ Training ------------------
 
@@ -121,35 +136,40 @@ def train_model(model, train_loader, val_loader, num_epochs, lr=1e-3, patience=1
     model.load_state_dict(torch.load('best_model.pt'))
     return model
 
-# ------------------ Evaluation ------------------
+# ------------------ Popularity-Aware Evaluation ------------------
 
 
-def evaluate_model(model, test_loader, device='cuda', mask_prob=0.15):
+def evaluate_model(model, test_loader, item_counts, num_negatives=100, device='cuda'):
     model.eval()
     model.to(device)
     recalls, ndcgs = [], []
+    all_items = list(item_counts.keys())
 
     with torch.no_grad():
         for batch in test_loader:
             input_seq = batch['input'].to(device)
-            masked_input, labels = mask_input(
-                input_seq, model.mask_token_id, mask_prob=mask_prob)
+            masked_input, labels = mask_input(input_seq, model.mask_token_id)
             logits = model(masked_input)
 
             for i in range(logits.size(0)):
                 true_items = labels[i][labels[i] != -100]
                 if len(true_items) == 0:
                     continue
-                pred_scores = logits[i]
-                top_k_items = torch.topk(pred_scores, k=10, dim=-1).indices
-                recalls.extend([recall_k(top_k_items[j], [true_items[j].item()])
-                               for j in range(len(true_items))])
-                ndcgs.extend([ndcg_k(top_k_items[j], [true_items[j].item()])
-                             for j in range(len(true_items))])
+                for j in range(len(true_items)):
+                    true_item = true_items[j].item()
+                    negatives = sample_popular_negatives(
+                        item_counts, all_items, num_samples=num_negatives, exclude_items=set(input_seq[i].tolist()))
+                    candidates = [true_item] + negatives
+                    scores = logits[i, j][candidates]
+                    top_k = torch.topk(scores, k=10).indices.tolist()
+                    ranked_items = [candidates[k] for k in top_k]
+                    recalls.append(recall_k(ranked_items, [true_item]))
+                    ndcgs.append(ndcg_k(ranked_items, [true_item]))
 
     avg_recall = sum(recalls) / len(recalls)
     avg_ndcg = sum(ndcgs) / len(ndcgs)
-    print(f'Test Recall@10: {avg_recall:.4f}, NDCG@10: {avg_ndcg:.4f}')
+    print(
+        f"Recall@10: {avg_recall:.4f}, NDCG@10: {avg_ndcg:.4f}")
     return avg_recall, avg_ndcg
 
 # ------------------ Run Training and Evaluation ------------------
@@ -171,10 +191,12 @@ def run():
     num_items = max(max(train_df['Train'].explode()), max(
         val_df['Validation'].explode()), max(test_df['Test'].explode()))
 
-    model = BERT4Rec(num_items=num_items, hidden_size=256, num_layers=4)
-    trained_model = train_model(model, train_loader, val_loader, num_epochs=50,
+    model = BERT4Rec(num_items=num_items, hidden_size=128, num_layers=4)
+    trained_model = train_model(model, train_loader, val_loader, num_epochs=200,
                                 lr=1e-3, patience=10, device='cuda' if torch.cuda.is_available() else 'cpu')
-    evaluate_model(trained_model, test_loader,
+
+    item_counts = build_item_popularity(train_df['Train'].tolist())
+    evaluate_model(trained_model, test_loader, item_counts,
                    device='cuda' if torch.cuda.is_available() else 'cpu')
 
 

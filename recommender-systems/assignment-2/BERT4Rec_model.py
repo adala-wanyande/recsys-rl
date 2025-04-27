@@ -4,7 +4,7 @@ from transformers import BertConfig, BertModel
 
 
 class BERT4Rec(nn.Module):
-    def __init__(self, num_items, hidden_size=128, max_seq_length=20, num_heads=4, num_layers=2, dropout=0.2):
+    def __init__(self, num_items, hidden_size=256, max_seq_length=200, num_heads=4, num_layers=4, dropout=0.2):
         super(BERT4Rec, self).__init__()
 
         self.mask_token_id = num_items + 1
